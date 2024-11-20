@@ -253,136 +253,116 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import plotly.express as px
 from sklearn.ensemble import RandomForestClassifier
+import plotly.express as px
 import shap
 from io import BytesIO
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
-# Dummy models for demonstration (replace with your actual trained models)
-diabetes_model = RandomForestClassifier()
-heart_model = RandomForestClassifier()
-parkinsons_model = RandomForestClassifier()
+# Assuming you have trained models saved as pickle files or in memory
+# For example:
+# model_diabetes = load_model('diabetes_model.pkl')
+# model_heart = load_model('heart_attack_model.pkl')
+# model_parkinsons = load_model('parkinsons_model.pkl')
 
-# Dummy data to fit the models (replace with your datasets)
-diabetes_model.fit(np.random.rand(100, 6), np.random.randint(2, size=100))
-heart_model.fit(np.random.rand(100, 4), np.random.randint(2, size=100))
-parkinsons_model.fit(np.random.rand(100, 4), np.random.randint(2, size=100))
+# Placeholder model functions (replace these with actual model loading)
+def load_model(model_name):
+    return RandomForestClassifier()  # Replace with actual model loading logic
 
-# Set page configuration
-st.set_page_config(page_title="Health Prediction System", layout="wide")
+# Load models
+model_diabetes = load_model('diabetes_model.pkl')
+model_heart = load_model('heart_attack_model.pkl')
+model_parkinsons = load_model('parkinsons_model.pkl')
 
-# Sidebar
-st.sidebar.title("Navigation")
-selected = st.sidebar.radio("Select a Page:", ["Home", "Diabetes Prediction", "Heart Disease Prediction", "Parkinson's Prediction"])
+# Helper function for tooltips
+def feature_tooltip(feature):
+    feature_info = {
+        'Pregnancies': 'Number of pregnancies the patient has had.',
+        'Glucose': 'Plasma glucose concentration after 2 hours in an oral glucose tolerance test.',
+        'BloodPressure': 'Blood pressure measured in mm Hg.',
+        'SkinThickness': 'Skin thickness (triceps skinfold thickness) in mm.',
+        'Insulin': 'Insulin level in the blood.',
+        'BMI': 'Body Mass Index (BMI) calculated from weight and height.',
+        'DiabetesPedigreeFunction': 'A function that scores the likelihood of diabetes based on family history.',
+        'Age': 'Age of the individual.',
+        'Outcome': 'Diabetes outcome (1: diabetic, 0: non-diabetic).'
+    }
+    return feature_info.get(feature, 'No information available')
 
-# Dark mode toggle
-dark_mode = st.sidebar.checkbox("Enable Dark Mode")
-
-# Set theme based on dark mode
-if dark_mode:
-    st.markdown("""
-    <style>
-    body {background-color: #2e3b4e; color: white;}
-    </style>
-    """, unsafe_allow_html=True)
-
-# Home Page
-if selected == "Home":
-    st.title("Welcome to the Health Prediction System")
-    st.write("This application predicts Diabetes, Heart Disease, and Parkinson's Disease using machine learning models.")
-    st.image("https://via.placeholder.com/800x300", caption="Health Monitoring Made Easy")
-    st.write("**Navigate to a specific disease prediction page from the sidebar to begin.**")
-
-# Helper function to validate inputs
-def validate_input(value, feature, min_val, max_val):
-    try:
-        val = float(value)
-        if min_val <= val <= max_val:
-            return val, None
-        else:
-            return None, f"{feature} should be between {min_val} and {max_val}."
-    except ValueError:
-        return None, f"{feature} should be a numeric value."
-
-# Helper function for confidence scores and SHAP values
-def show_model_explanation(model, user_input):
-    st.subheader("Model Confidence")
-    prediction_proba = model.predict_proba([user_input])
-    confidence_score = np.max(prediction_proba) * 100
-    st.write(f"The model is **{confidence_score:.2f}%** confident about this prediction.")
-
-    st.subheader("Feature Contribution")
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values([user_input])
-    shap.force_plot(explainer.expected_value[1], shap_values[1], user_input, matplotlib=True)
-    st.pyplot(plt.gcf())
-    plt.clf()
-
-# Diabetes Prediction Page
-if selected == "Diabetes Prediction":
+# Diabetes Prediction Form
+def diabetes_prediction():
     st.title("Diabetes Prediction")
     
-    pregnancies = st.number_input("Pregnancies", min_value=0, step=1, help="Number of times pregnant.")
-    glucose = st.number_input("Glucose", min_value=0, help="Plasma glucose concentration.")
-    blood_pressure = st.number_input("Blood Pressure", min_value=0, help="Diastolic blood pressure (mm Hg).")
-    bmi = st.number_input("BMI", min_value=0.0, help="Body Mass Index.")
-    diabetes_pedigree = st.number_input("Diabetes Pedigree Function", min_value=0.0, help="Likelihood of diabetes based on family history.")
-    age = st.number_input("Age", min_value=0, step=1, help="Age in years.")
-
-    # Prediction
-    if st.button("Predict Diabetes"):
-        user_input = [pregnancies, glucose, blood_pressure, bmi, diabetes_pedigree, age]
-        diabetes_prediction = diabetes_model.predict([user_input])[0]
-        diagnosis = "The person has diabetes" if diabetes_prediction == 1 else "The person does not have diabetes"
-        st.success(diagnosis)
-        show_model_explanation(diabetes_model, user_input)
-
-# Heart Disease Prediction Page
-if selected == "Heart Disease Prediction":
-    st.title("Heart Disease Prediction")
+    Pregnancies = st.number_input('Number of Pregnancies', min_value=0, help=feature_tooltip('Pregnancies'))
+    Glucose = st.number_input('Glucose Level', help=feature_tooltip('Glucose'))
+    BloodPressure = st.number_input('Blood Pressure', help=feature_tooltip('BloodPressure'))
+    SkinThickness = st.number_input('Skin Thickness', help=feature_tooltip('SkinThickness'))
+    Insulin = st.number_input('Insulin Level', help=feature_tooltip('Insulin'))
+    BMI = st.number_input('BMI', help=feature_tooltip('BMI'))
+    DiabetesPedigreeFunction = st.number_input('Diabetes Pedigree Function', help=feature_tooltip('DiabetesPedigreeFunction'))
+    Age = st.number_input('Age', help=feature_tooltip('Age'))
     
-    age = st.number_input("Age", min_value=0, step=1, help="Age in years.")
-    sex = st.selectbox("Sex", options=["Male", "Female"], help="Select the biological sex.")
-    chol = st.number_input("Cholesterol", min_value=0, help="Serum cholesterol in mg/dL.")
-    thalach = st.number_input("Thalach", min_value=0, help="Maximum heart rate achieved.")
+    if st.button("Predict"):
+        features = np.array([[Pregnancies, Glucose, BloodPressure, SkinThickness, Insulin, BMI, DiabetesPedigreeFunction, Age]])
+        prediction = model_diabetes.predict(features)
+        st.write(f"Prediction: {'Diabetic' if prediction[0] == 1 else 'Non-Diabetic'}")
 
-    # Prediction
-    if st.button("Predict Heart Disease"):
-        user_input = [age, 1 if sex == "Male" else 0, chol, thalach]
-        heart_prediction = heart_model.predict([user_input])[0]
-        diagnosis = "The person has heart disease" if heart_prediction == 1 else "The person does not have heart disease"
-        st.success(diagnosis)
-        show_model_explanation(heart_model, user_input)
+# Heart Attack Prediction Form
+def heart_attack_prediction():
+    st.title("Heart Attack Prediction")
+    
+    age = st.number_input('Age', help=feature_tooltip('Age'))
+    sex = st.selectbox('Sex', [0, 1], help=feature_tooltip('Sex'))  # 0 for female, 1 for male
+    cp = st.selectbox('Chest Pain Type', [0, 1, 2, 3], help=feature_tooltip('cp'))  # Various types of chest pain
+    trestbps = st.number_input('Resting Blood Pressure', help=feature_tooltip('trestbps'))
+    chol = st.number_input('Cholesterol Level', help=feature_tooltip('chol'))
+    fbs = st.selectbox('Fasting Blood Sugar', [0, 1], help=feature_tooltip('fbs'))  # 0 or 1
+    restecg = st.selectbox('Resting Electrocardiographic Results', [0, 1, 2], help=feature_tooltip('restecg'))
+    thalach = st.number_input('Maximum Heart Rate', help=feature_tooltip('thalach'))
+    exang = st.selectbox('Exercise Induced Angina', [0, 1], help=feature_tooltip('exang'))
+    oldpeak = st.number_input('Depression Induced by Exercise', help=feature_tooltip('oldpeak'))
+    slope = st.selectbox('Slope of Peak Exercise ST Segment', [0, 1, 2], help=feature_tooltip('slope'))
+    ca = st.selectbox('Number of Major Vessels Colored by Fluoroscopy', [0, 1, 2, 3], help=feature_tooltip('ca'))
+    thal = st.selectbox('Thalassemia', [0, 1, 2, 3], help=feature_tooltip('thal'))
+    
+    if st.button("Predict"):
+        features = np.array([[age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]])
+        prediction = model_heart.predict(features)
+        st.write(f"Prediction: {'Heart Attack Risk' if prediction[0] == 1 else 'No Heart Attack Risk'}")
 
-# Parkinson's Disease Prediction Page
-if selected == "Parkinson's Prediction":
+# Parkinson's Disease Prediction Form
+def parkinsons_prediction():
     st.title("Parkinson's Disease Prediction")
     
-    jitter = st.number_input("Jitter (%)", min_value=0.0, help="Variation in voice frequency.")
-    shimmer = st.number_input("Shimmer", min_value=0.0, help="Variation in voice amplitude.")
-    nhr = st.number_input("Noise-to-Harmonics Ratio", min_value=0.0, help="Measure of vocal noise.")
-    hnr = st.number_input("Harmonics-to-Noise Ratio", min_value=0.0, help="Measure of voice clarity.")
+    MDVP_Fo_Hz = st.number_input('MDVP:Fo(Hz)', help=feature_tooltip('MDVP:Fo(Hz)'))
+    MDVP_Fhi_Hz = st.number_input('MDVP:Fhi(Hz)', help=feature_tooltip('MDVP:Fhi(Hz)'))
+    MDVP_Flo_Hz = st.number_input('MDVP:Flo(Hz)', help=feature_tooltip('MDVP:Flo(Hz)'))
+    MDVP_Jitter_percent = st.number_input('MDVP:Jitter(%)', help=feature_tooltip('MDVP:Jitter(%)'))
+    MDVP_Jitter_Abs = st.number_input('MDVP:Jitter(Abs)', help=feature_tooltip('MDVP:Jitter(Abs)'))
+    MDVP_RAP = st.number_input('MDVP:RAP', help=feature_tooltip('MDVP:RAP'))
+    MDVP_PPQ = st.number_input('MDVP:PPQ', help=feature_tooltip('MDVP:PPQ'))
+    Jitter_DDP = st.number_input('Jitter:DDP', help=feature_tooltip('Jitter:DDP'))
+    MDVP_Shim = st.number_input('MDVP:Shimmer', help=feature_tooltip('MDVP:Shimmer'))
+    # Add all features for Parkinsons
 
-    # Prediction
-    if st.button("Predict Parkinson's"):
-        user_input = [jitter, shimmer, nhr, hnr]
-        parkinsons_prediction = parkinsons_model.predict([user_input])[0]
-        diagnosis = "The person has Parkinson's disease" if parkinsons_prediction == 1 else "The person does not have Parkinson's disease"
-        st.success(diagnosis)
-        show_model_explanation(parkinsons_model, user_input)
+    if st.button("Predict"):
+        features = np.array([[MDVP_Fo_Hz, MDVP_Fhi_Hz, MDVP_Flo_Hz, MDVP_Jitter_percent, MDVP_Jitter_Abs,
+                              MDVP_RAP, MDVP_PPQ, Jitter_DDP, MDVP_Shim]])  # Include all the required features
+        prediction = model_parkinsons.predict(features)
+        st.write(f"Prediction: {'Parkinson\'s Disease' if prediction[0] == 1 else 'No Parkinson\'s Disease'}")
 
-# Downloadable Results
-st.sidebar.subheader("Save Results")
-if st.sidebar.button("Download Results as CSV"):
-    data = {
-        "Diabetes Prediction": [diabetes_prediction],
-        "Heart Prediction": [heart_prediction],
-        "Parkinson's Prediction": [parkinsons_prediction]
-    }
-    results_df = pd.DataFrame(data)
-    csv = results_df.to_csv(index=False)
-    b = BytesIO()
-    b.write(csv.encode())
-    b.seek(0)
-    st.sidebar.download_button("Download CSV", data=b, file_name="predictions.csv")
+# Main app layout
+def main():
+    st.sidebar.title("Disease Prediction System")
+    option = st.sidebar.selectbox("Select Disease", ["Diabetes", "Heart Attack", "Parkinson's Disease"])
+    
+    if option == "Diabetes":
+        diabetes_prediction()
+    elif option == "Heart Attack":
+        heart_attack_prediction()
+    else:
+        parkinsons_prediction()
+
+if __name__ == "__main__":
+    main()
