@@ -353,6 +353,7 @@ def parkinsons_prediction():
         st.write(f"Prediction: {'Parkinson\'s Disease' if prediction[0] == 1 else 'No Parkinson\'s Disease'}")
 
 
+
 # Main app layout
 def main():
     st.sidebar.title("Disease Prediction System")
