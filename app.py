@@ -306,18 +306,32 @@ def validate_input(value, feature, min_val, max_val):
         return None, f"{feature} should be a numeric value."
 
 # Helper function for confidence scores and SHAP values
+import numpy as np
+import shap
+import matplotlib.pyplot as plt
+
 def show_model_explanation(model, user_input):
     st.subheader("Model Confidence")
     prediction_proba = model.predict_proba([user_input])  # This is fine
     confidence_score = np.max(prediction_proba) * 100
     st.write(f"The model is **{confidence_score:.2f}%** confident about this prediction.")
 
+    # Convert user_input to a 2D array if it's not already
+    user_input_array = np.array([user_input])
+
+    # Check if any NaN values are present and handle them
+    if np.any(np.isnan(user_input_array)):
+        st.error("Input contains NaN values. Please provide valid input.")
+        return
+    
     st.subheader("Feature Contribution")
     explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(np.array([user_input]))  # Ensure user_input is 2D array
-    shap.force_plot(explainer.expected_value[1], shap_values[1], user_input, matplotlib=True)
-    st.pyplot(plt.gcf())
-    plt.clf()
+    shap_values = explainer.shap_values(user_input_array)  # Ensure user_input is 2D array
+
+    # Generate and display the SHAP plot
+    shap.initjs()  # Initialize SHAP JavaScript visualization
+    st.pyplot(shap.summary_plot(shap_values, user_input_array))  # SHAP summary plot
+    plt.clf()  # Clear the plot to prevent reuse in the next section
 
 
 # Diabetes Prediction Page
