@@ -308,16 +308,17 @@ def validate_input(value, feature, min_val, max_val):
 # Helper function for confidence scores and SHAP values
 def show_model_explanation(model, user_input):
     st.subheader("Model Confidence")
-    prediction_proba = model.predict_proba([user_input])
+    prediction_proba = model.predict_proba([user_input])  # This is fine
     confidence_score = np.max(prediction_proba) * 100
     st.write(f"The model is **{confidence_score:.2f}%** confident about this prediction.")
 
     st.subheader("Feature Contribution")
     explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values([user_input])
+    shap_values = explainer.shap_values(np.array([user_input]))  # Ensure user_input is 2D array
     shap.force_plot(explainer.expected_value[1], shap_values[1], user_input, matplotlib=True)
     st.pyplot(plt.gcf())
     plt.clf()
+
 
 # Diabetes Prediction Page
 if selected == "Diabetes Prediction":
