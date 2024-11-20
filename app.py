@@ -343,5 +343,7 @@ if page == "Parkinson's Disease":
         input_data = scaler.transform(input_data)
         prediction = parkinson_model.predict(input_data)
 
-        st.write(f"Prediction: {'Parkinson\'s Disease' if prediction[0] == 1 else 'No Parkinson\'s Disease'}")
+        prediction_text = "Parkinson's Disease" if prediction[0] == 1 else "No Parkinson's Disease"
+        st.write(f"Prediction: {prediction_text}")
+
 
